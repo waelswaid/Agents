@@ -1,5 +1,39 @@
+"""
+web framework for building apis with python, provides the routing (@app.get, @app.post), (1)validation and (2)automatic docs(/docs, /redoc)
+handles (3)request parsing and (4)response serialization
+
+(1) when a client sends a request fastapi validates that the body matches your ChatRequest schema ( message must be 1-4000, agent defaults to "general", etc).
+(2) documentation for the api, can test endpoints without writing extra client code. shows all routes, required inputs, validation rules and possible responses.
+(3) incoming HTTP requests are just raw text/bytes(JSON, etc). FastApi parses them into python objects (e.g. ChatRequest class)
+(4) when you return a python dict/object, fastapi automatically converts it into JSON so clients can read it.
+"""
 fastapi
+
+"""
+ASGI server that runs fast api
+fastapi itself is just framework code, to actually listen on on a port and handle network traffic you need a server (uvicorn).
+analogy: fastapi is the restaurant kitchen, and uvicorn is the waiter.
+"""
 uvicorn[standard]
+
+
+""" 
+an async (1)HTTP client for python, designed for (2)async/await.
+ollama provider (providers/ollama.py) uses httpx.AsyncClient to POST to OLLAMA_HOST/api/generate.
+supports timeouts, retries, and (3)async integration with fastapi.
+
+(1)an HTTP request is how a client(browser, api client, etc) asks a server for something (GET for requesting, POST for transmitting).
+(2) async: let's you define a function that can that can pause while waiting for something slow (like a network request).
+    await: tells python 'wait here untill this async task is completed'
+"""
 httpx
+
+# a package that lets you load environment variables from .env file into python's os.environ
 python-dotenv
+
+
+"""
+a data validation and settings management library, in app.py your request/response schemas (ChatRequest, ChatResponse) subclass pydantic.BaseModel.
+automatically validates inputs( message must be 1-4000, agent defaults to "general", etc)
+"""
 pydantic

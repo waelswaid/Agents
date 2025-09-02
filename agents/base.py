@@ -1,3 +1,12 @@
+"""
+provides the generic function that assembles a chat prompt from:
+
+* a system block (behaviour/rules)
+* a user block (the user's message)
+* a placeholder for future chat history
+
+"""
+
 from typing import List, Dict
 
 def build_prompt(system: str, user: str, history: List[Dict[str, str]] | None = None) -> str:

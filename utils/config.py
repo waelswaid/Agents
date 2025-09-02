@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # reads .env if present
 
-PROVIDER = os.getenv("PROVIDER", "ollama")
+PROVIDER = os.getenv("PROVIDER", "ollama") # TODO when more providers are added this should be changed to a list
 OLLAMA_MODEL_GENERAL = os.getenv("OLLAMA_MODEL_GENERAL", "qwen2.5:3b-instruct")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 
