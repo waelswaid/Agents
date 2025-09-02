@@ -1,5 +1,3 @@
-
-```markdown
 # Pi FastAPI Agent Server
 
 Lightweight multi-agent server built on **FastAPI**, designed to run on Raspberry Pi.  
@@ -24,43 +22,41 @@ Current version: **Phase 1** — single agent, Ollama provider, non-stream `/cha
 ## Project Structure
 
 ```
-
 agents/
-base.py            # prompt builder
-general.py         # general agent system prompt loader
+  base.py            # prompt builder
+  general.py         # general agent system prompt loader
 providers/
-base.py            # provider contract + ProviderError
-ollama.py          # Ollama provider implementation (non-stream)
+  base.py            # provider contract + ProviderError
+  ollama.py          # Ollama provider implementation (non-stream)
 prompts/
-general\_system.txt # system prompt for the general agent
+  general_system.txt # system prompt for the general agent
 utils/
-config.py          # centralized configuration loader
+  config.py          # centralized configuration loader
 app.py               # FastAPI entry point (endpoints & routing)
 .env                 # environment variables (not committed)
 .gitignore
 requirements.txt
 README.md
-
-````
+```
 
 ---
 
 ## Endpoints
 
 ### `GET /health`
+
 Returns server health.
 
 **Response**
 ```json
 { "status": "ok" }
-````
+```
 
 ### `GET /agents`
 
 Returns available agent names.
 
 **Response**
-
 ```json
 ["general"]
 ```
@@ -70,7 +66,6 @@ Returns available agent names.
 Send a prompt to an agent and get a reply.
 
 **Request body**
-
 ```json
 {
   "message": "say hello",
@@ -80,7 +75,6 @@ Send a prompt to an agent and get a reply.
 ```
 
 **Response**
-
 ```json
 {
   "reply": "Hello! (from the model)"
@@ -141,31 +135,29 @@ curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/agents
 # ["general"]
 
-curl -s -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"say hello","agent":"general","stream":false}'
+curl -s -X POST http://127.0.0.1:8000/chat   -H "Content-Type: application/json"   -d '{"message":"say hello","agent":"general","stream":false}'
 ```
 
 ---
 
 ## Limitations (Phase 1)
 
-* Only one agent (`general`)
-* Only one provider (Ollama, non-stream mode)
-* No conversation memory
-* No streaming responses
-* No rate limiting or security layer
-* Logging is minimal
+- Only one agent (`general`)
+- Only one provider (Ollama, non-stream mode)
+- No conversation memory
+- No streaming responses
+- No rate limiting or security layer
+- Logging is minimal
 
 ---
 
 ## Next Steps (Planned)
 
-* Phase 2: Streaming responses + short-term conversation memory
-* Phase 3: Tool calling with a safe allowlist
-* Phase 4: Add OpenAI provider (switchable backends)
-* Phase 5: Security hardening (rate limits, CORS, API key)
-* Phase 6: SQLite persistence & admin ops
-* Phase 7: Tiny RAG starter for local docs
+- Phase 2: Streaming responses + short-term conversation memory
+- Phase 3: Tool calling with a safe allowlist
+- Phase 4: Add OpenAI provider (switchable backends)
+- Phase 5: Security hardening (rate limits, CORS, API key)
+- Phase 6: SQLite persistence & admin ops
+- Phase 7: Tiny RAG starter for local docs
 
 ---
