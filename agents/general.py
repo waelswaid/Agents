@@ -2,5 +2,5 @@
 from pathlib import Path
 
 def load_system_prompt() -> str:
-    p = Path("prompts/general_system.txt") # TODO: currently uses a relative path, harden it later to a using a path relative to __file__
+    p = Path(__file__).resolve().parents[1] / "prompts" / "general_system.txt"
     return p.read_text(encoding="utf-8").strip()

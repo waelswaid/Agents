@@ -39,6 +39,10 @@ def list_agents() -> dict:
 """
 this is how FastAPI does validation (using these two classes). first class is what the client must send, second is what the api guarantees to return.
 if the validation failsfastapi returns a '422 unprocessable entity' response with json body explaining the error.
+
+BaseModel is the core pydantic package class that you inherit from when you want to define structured data models.
+it provides data validation, type checking, and serialization automatically.
+every model you create by subclassing BaseModel becomes a self-validating schema.
 """
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=4000)
