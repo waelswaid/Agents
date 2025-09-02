@@ -1,3 +1,4 @@
+"""
 # imports config from utils/config.py
 # loads the system prompt via agents/general.py
 # composes a final prompt using agents/general.py
@@ -13,6 +14,21 @@ from typing import Optional, Dict, Any
 from utils import config
 from agents.general import load_system_prompt
 from agents.base import build_prompt
+"""
+
+
+from fastapi import FastAPI, HTTPException, Response, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any, cast, AsyncIterator
+from uuid import uuid4
+
+from utils import config
+from agents.general import load_system_prompt
+from agents.base import build_prompt
+from utils.memory import MemoryStore
+from providers.base import ProviderError, GenerateReturn
+
 
 # Provider switch
 if config.PROVIDER == "ollama":
@@ -22,13 +38,26 @@ if config.PROVIDER == "ollama":
 else:
     from providers.base import generate as provider_generate  # placeholder; raises NotImplemented
 
+
+
 # creates FastAPI instance
-app = FastAPI(title="Pi Agent Server", version="0.2.0")
+app = FastAPI(title="Pi Agent Server", version="0.3.0")
+
+
+# --- Phase 2: tiny in-memory conversation store ---
+_memory = MemoryStore(
+    max_turns=config.MEMORY_MAX_TURNS,
+    ttl_seconds=config.MEMORY_TTL_MIN * 60,
+    max_conversations=config.MEMORY_MAX_CONVERSATIONS,
+)
+
 
 # simple liveness check
 @app.get("/health")
-def health() -> dict:
+def health():
     return {"status": "ok"}
+
+
 # enumerate available agents
 @app.get("/agents")
 def list_agents() -> dict:
@@ -45,12 +74,15 @@ it provides data validation, type checking, and serialization automatically.
 every model you create by subclassing BaseModel becomes a self-validating schema.
 """
 class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=4000)
-    agent: str = Field("general", description="Only 'general' in Phase 1")
-    stream: bool = False
+    message: str = Field(min_length=1, max_length=4000)
+    agent: str = Field(default="general")
+    stream: bool = Field(default=False)
+    conversation_id: Optional[str] = None
+
 
 class ChatResponse(BaseModel):
     reply: str
+    conversation_id: Optional[str] = None
     model: str
     provider: str
 
@@ -62,33 +94,65 @@ class ChatResponse(BaseModel):
 #(2) response_model=ChatResponse -> whatever this function returns must be validated and shaped like ChatResponse.
 
 
-async def chat(req: ChatRequest) -> ChatResponse: # (3)async function, input is validated against ChatRequest model.
+async def chat(req: ChatRequest, request: Request): # (3)async function, input is validated against ChatRequest model.
     #(3) allows the function to pause and wait (with await) for slow operations without blocking the entire server.
     # if 10 users hit /chat at once, this allows the server to juggle them concurrently, without async it would proccess them one by one
-    if req.agent != "general":
-        raise HTTPException(status_code=400, detail="Unknown agent (only 'general' supported in Phase 1)")
+    # 
+    # 
+    # ensure conversation id
+    convo_id = req.conversation_id or str(uuid4())
+
+    # assemble history if enabled
+    history = []
+    if config.ENABLE_MEMORY:
+        history = await _memory.get(convo_id)
 
     system = load_system_prompt()
-    prompt = build_prompt(system, req.message)
+    prompt = build_prompt(system, req.message, history)
 
-    # Map simple options to Ollama
     options: Dict[str, Any] = {
         "temperature": config.TEMPERATURE,
         "num_ctx": config.CTX_TOKENS,
         "num_predict": config.MAX_TOKENS,
     }
 
+    # non-stream: keep old behavior
+    if not req.stream:
+        try:
+            reply = cast(str, await provider_generate(
+                prompt, model=config.OLLAMA_MODEL_GENERAL, stream=False, options=options
+            ))
+        except ProviderError as e:
+            raise HTTPException(status_code=502, detail=str(e))
+        # update memory
+        if config.ENABLE_MEMORY:
+            await _memory.append(convo_id, "user", req.message)
+            await _memory.append(convo_id, "assistant", reply)
+        return ChatResponse(reply=reply, conversation_id=convo_id)
+
+    # stream path
     try:
-        reply = await provider_generate( # calls the provider with the prompt.
-            prompt,
-            model=config.OLLAMA_MODEL_GENERAL, # TODO ollama_model_general should be changed when more providers are added
-            stream=False,  # Phase 1 = non-stream
-            options=options,
-        )
-        return ChatResponse(# wrap provider output into ChatResponse schema
-            reply=reply,
-            model=config.OLLAMA_MODEL_GENERAL, # TODO this should also be changed.
-            provider=config.PROVIDER,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Provider error: {e}")
+        gen = cast(AsyncIterator[str], await provider_generate(
+            prompt, model=config.OLLAMA_MODEL_GENERAL, stream=True, options=options
+        ))
+    except ProviderError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    async def streamer() -> AsyncIterator[bytes]:
+        # accumulate to store in memory after stream ends
+        acc: list[str] = []
+        try:
+            async for chunk in gen:
+                acc.append(chunk)
+                # stop if client disconnected
+                if await request.is_disconnected():
+                    break
+                yield chunk.encode("utf-8")
+        finally:
+            if config.ENABLE_MEMORY:
+                await _memory.append(convo_id, "user", req.message)
+                if acc:
+                    await _memory.append(convo_id, "assistant", "".join(acc))
+
+    headers = {"X-Conversation-Id": convo_id}
+    return StreamingResponse(streamer(), media_type="text/plain; charset=utf-8", headers=headers)
