@@ -21,32 +21,27 @@ Current version: **Phase 1** — single agent, Ollama provider, non-stream `/cha
 
 ---
 
+## Project Structure
 
 ```
 
-## Project Structure
-
-
 agents/
---base.py            # prompt builder
---general.py         # general agent system prompt loader
+base.py            # prompt builder
+general.py         # general agent system prompt loader
 providers/
---base.py            # provider contract + ProviderError
---ollama.py          # Ollama provider implementation (non-stream)
+base.py            # provider contract + ProviderError
+ollama.py          # Ollama provider implementation (non-stream)
 prompts/
---general_system.txt # system prompt for the general agent
+general\_system.txt # system prompt for the general agent
 utils/
---config.py          # centralized configuration loader
---app.py               # FastAPI entry point (endpoints & routing)
+config.py          # centralized configuration loader
+app.py               # FastAPI entry point (endpoints & routing)
 .env                 # environment variables (not committed)
 .gitignore
 requirements.txt
 README.md
 
 ````
-
-```
-
 
 ---
 
