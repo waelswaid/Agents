@@ -5,6 +5,23 @@ Current version: **Phase 2** — single agent, Ollama provider, stream/non-strea
 
 ---
 
+## Docs Contents
+
+  ## Contents
+  - [00. Current phase report](/docs/phase2_report.md)
+  - [01. Architecture](/docs/architecture.md)
+  - [02. Memory](/docs/short_memory.md)
+  - [03. Streaming](/docs/streaming.md)
+  - [04. app.py](/docs/app_py.md)
+  - [05. Glossary](/docs/glossary.md)
+  - [06. Pydantic](/docs/pydantic.md)
+  - [07. Decisions](/docs/decisions.md)
+  - [08. Roadmap](/docs/roadmap.md)
+
+
+
+
+
 ## Features (current version)
 
 - ✅ **Health check** endpoint (`/health`)
