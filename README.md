@@ -1,7 +1,7 @@
 # Pi FastAPI Agent Server
 
 Lightweight multi-agent server built on **FastAPI**, designed to run on Raspberry Pi.  
-Current version: **Phase 1** — single agent, Ollama provider, non-stream `/chat`.
+Current version: **Phase 2** — single agent, Ollama provider, non-stream `/chat`.
 
 ---
 
@@ -161,3 +161,30 @@ curl -s -X POST http://127.0.0.1:8000/chat   -H "Content-Type: application/json"
 - Phase 7: Tiny RAG starter for local docs
 
 ---
+
+## Tests
+
+### non-stream
+
+```
+curl -s -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"say hello","agent":"general","stream":false}'
+```
+
+### stream
+
+```
+curl -N -i -s -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"count to five","agent":"general","stream":true}'
+# note: capture returned conversation id from the "X-Conversation-Id" response header
+```
+
+```
+curl -N -s -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"and now continue to ten","agent":"general","stream":true,"conversation_id":"<from header>"}'
+```
+
+

@@ -83,8 +83,8 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     conversation_id: Optional[str] = None
-    model: str
-    provider: str
+    model: Optional[str] = None
+    provider: Optional[str] = None
 
 
 
@@ -128,7 +128,7 @@ async def chat(req: ChatRequest, request: Request): # (3)async function, input i
         if config.ENABLE_MEMORY:
             await _memory.append(convo_id, "user", req.message)
             await _memory.append(convo_id, "assistant", reply)
-        return ChatResponse(reply=reply, conversation_id=convo_id)
+        return ChatResponse(reply=reply, conversation_id=convo_id, model=config.OLLAMA_MODEL_GENERAL, provider = config.PROVIDER,)
 
     # stream path
     try:

@@ -58,3 +58,18 @@ next steps:
 
 * Global exception handlers: `ProviderError`→502, `RequestValidationError`→422 (already handled by FastAPI), unknown→500 (redacted message).
 * Acceptance: bad model name shows 502 with safe text; logs have full traceback.
+
+
+
+
+
+
+
+changes made this version:
+1) phase 2 section in utils/config.py
+2) added utils/memory.py
+3) changed agents/base.py (actually include recent history in prompts)
+4) changed providers/base.py (allow streaming return types)
+5) providers/ollama.py implement streaming path
+6) app.py add streaming path + memory
+7) .env modified
