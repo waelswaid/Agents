@@ -1,23 +1,51 @@
+info:
+--------------------------
+Data Structures:
 
-next steps:
+what is TypedDict (from typing package)?
+it let's us define dictionaries with a fixed structure, where each key has a specific expected type (similar to objects in c).
+
+example:
+
+class Person(TypedDict):
+    name: str
+    age: int
+
+#dict creation
+p: Person = {
+    "name": "wael"# same as below
+    "age": 27 #anything other than int gives error (static)
+}
+
+----------------------------
+Python:
+
+-what is def __init__(...)?
+
+a dunder method that runs automatically right after you create an object from class. its job is to initialize the object as it's created
+example:
+class Dog:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+dog = Dog("X", 10)
+print(dog.name) #output is X
+
+-what's a variable of this sort "self._var, self._x"?
+
+    these are instance variables, they store data that belongs to that specific object.
+    the underscore before the variable's name means it's protected / internal use only 
+
+-------------------------------
+General:
+
+what are race conditions?
+
+    two or more tasks access the same data at the same time
 
 
 
 
-2) **Structured logging**
-
-* Add request-ID per call; log: time, agent, provider, model, latency\_ms, tokens\_in/out (approx), status.
-* Acceptance: each `/chat` call prints one JSON log line.
-
-**Provider options mapping**
-
-* Map config caps to Ollama options (`num_ctx=CTX_TOKENS`, `num_predict=MAX_TOKENS`, `temperature=TEMPERATURE`).
-* Acceptance: options appear in the payload; server still answers correctly.
-
-**Graceful error surface**
-
-* Global exception handlers: `ProviderError`→502, `RequestValidationError`→422 (already handled by FastAPI), unknown→500 (redacted message).
-* Acceptance: bad model name shows 502 with safe text; logs have full traceback.
 
 
 
@@ -25,11 +53,9 @@ next steps:
 
 
 
-changes made this version:
-1) phase 2 section in utils/config.py
-2) added utils/memory.py
-3) changed agents/base.py (actually include recent history in prompts)
-4) changed providers/base.py (allow streaming return types)
-5) providers/ollama.py implement streaming path
-6) app.py add streaming path + memory
-7) .env modified
+
+
+
+reminders:
+dunder methods (__init__)
+checkout deque data structure

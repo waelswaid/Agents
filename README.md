@@ -1,7 +1,7 @@
 # Pi FastAPI Agent Server
 
 Lightweight multi-agent server built on **FastAPI**, designed to run on Raspberry Pi.  
-Current version: **Phase 2** — single agent, Ollama provider, stream/non-stream `/chat`, conversation memory.
+Current version: 0.3.0 (**Phase 2**) — single agent, Ollama provider, stream and non-stream `/chat`, short conversation memory.
 
 ---
 

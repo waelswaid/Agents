@@ -7,20 +7,6 @@ provides the generic function that assembles a chat prompt from:
 
 """
 
-from typing import List, Dict
-
-#def build_prompt(system: str, user: str, history: List[Dict[str, str]] | None = None) -> str:
-    
-    #Very simple prompt composer:
-    #<system>...</system>
-    #<user>...</user>
-    #(history left for later)
-    
-#    _ = history  # unused in Phase 1
-#    return f"<system>\n{system}\n</system>\n\n<user>\n{user}\n</user>"
-
-
-
 from typing import List, Dict, Iterable
 
 def _render_history(history: Iterable[Dict[str, str]]) -> str:
@@ -30,7 +16,7 @@ def _render_history(history: Iterable[Dict[str, str]]) -> str:
         content = turn.get("content", "")
         if not content:
             continue
-        if role == "assistant":
+        if role == "assistant": # response from the model
             parts.append(f"<assistant>\n{content}\n</assistant>")
         else:
             parts.append(f"<user>\n{content}\n</user>")
@@ -44,6 +30,7 @@ def build_prompt(system: str, user: str, history: List[Dict[str, str]] | None = 
     <user>...</user>
     """
     hist = _render_history(history or [])
+    # contains the formatted conversation history that provides context for the model's next response
     if hist:
         return (
             f"<system>\n{system}\n</system>\n\n"

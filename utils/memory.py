@@ -1,13 +1,13 @@
 from __future__ import annotations
 from collections import deque
 from typing import Deque, Dict, List, TypedDict
-import asyncio
+import asyncio # uses async/wait to handle concurrent requests
 import time
 
-class Turn(TypedDict):
+class Turn(TypedDict): # class for creating fixed structure dicts
     role: str         # "user" | "assistant"
-    content: str
-    ts: float
+    content: str       # the message
+    ts: float         # timestamp
 
 class MemoryStore:
     """
@@ -19,31 +19,34 @@ class MemoryStore:
     def __init__(
         self,
         *,
-        max_turns: int = 8,
-        ttl_seconds: int = 60 * 60,
-        max_conversations: int = 500,
+        max_turns: int = 8, # Maximum number of messages kept per conversation
+        ttl_seconds: int = 60 * 60, # Time-to-live for conversations in seconds
+        max_conversations: int = 500, # Maximum number of concurrent conversations, When limit is reached, oldest conversation is removed
+
     ) -> None:
-        self._store: Dict[str, Deque[Turn]] = {}
-        self._last: Dict[str, float] = {}
-        self._lock = asyncio.Lock()
+        self._store: Dict[str, Deque[Turn]] = {} # Stores all conversations
+        self._last: Dict[str, float] = {} # Last access time for each conversation (used for TTL and LRU eviction)
+        self._lock = asyncio.Lock() # Prevents race conditions during concurrent access
         self._max_turns = max(1, max_turns)
         self._ttl = max(0, ttl_seconds)
         self._max_convos = max(1, max_conversations)
 
+    # this method is used to retrieve conversation history
     async def get(self, convo_id: str) -> List[Turn]:
-        await self._maybe_prune(convo_id)
-        dq = self._store.get(convo_id)
-        return list(dq) if dq else []
+        await self._maybe_prune(convo_id) # Check and remove if expired
+        dq = self._store.get(convo_id) # Get conversation queue
+        return list(dq) if dq else [] # return active conversations
 
+    # this method is used to append a new message to the conversation
     async def append(self, convo_id: str, role: str, content: str) -> None:
         now = time.time()
         async with self._lock:
-            dq = self._store.get(convo_id)
-            if dq is None:
-                dq = deque(maxlen=self._max_turns)
-                self._store[convo_id] = dq
+            dq = self._store.get(convo_id)#gets existing convos
+            if dq is None:#if there are none
+                dq = deque(maxlen=self._max_turns) #creates new one with max turns
+                self._store[convo_id] = dq 
             dq.append({"role": role, "content": content, "ts": now})
-            self._last[convo_id] = now
+            self._last[convo_id] = now # update last access time
             # LRU eviction if we exceed the global limit
             if len(self._store) > self._max_convos:
                 oldest = min(self._last.items(), key=lambda kv: kv[1])[0]

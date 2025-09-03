@@ -1,5 +1,3 @@
-
-
 from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -131,11 +129,16 @@ async def chat(req: ChatRequest, request: Request): # (3)async function, input i
                 if await request.is_disconnected():
                     break
                 yield chunk.encode("utf-8")
-        finally:
+        finally: # This block executes after streaming completes, whether it ends normally or due to an error
             if config.ENABLE_MEMORY:
+                # Stores the user's original message
                 await _memory.append(convo_id, "user", req.message)
+                # If we accumulated any response chunks
                 if acc:
+                    # Join all chunks and store the complete assistant response
                     await _memory.append(convo_id, "assistant", "".join(acc))
 
+    # set conversation ID header so client can track
     headers = {"X-Conversation-Id": convo_id}
+    # text/event-stream is a standard for streaming text data over HTTP
     return StreamingResponse(streamer(), media_type="text/plain; charset=utf-8", headers=headers)
