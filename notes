@@ -1,45 +1,5 @@
-TODOS:
-config.py line 10
-app.py lines 21, 80, 86
-
-
-
-        to run the server:
-            ----------
-uvicorn app:app --host 0.0.0.0 --port 8000
-            ----------
-
-
-        liveness check:
-            ----------
-curl http://127.0.0.1:8000/health
-            ----------
-
-
-        /chat test:
-            ----------
-curl -s -X POST http://127.0.0.1:8000/chat -H "Content-Type: application/json" -d '{"message":"say hello","agent":"general","stream":false}'
-            ----------
-
-
-
 
 next steps:
-
-
-
-# Streaming + short memory-
-1) *Streaming responses**
-
-* Implement `stream=True` path (Server-Sent Events or chunked text). In Ollama, stream endpoint returns multiple JSON lines; yield as they arrive.
-* Acceptance: `curl` or a tiny web client sees tokens arrive incrementally; non-stream unchanged.
-
- *Conversation memory (ephemeral)**
-
-* `conversation_id` in request; store last N turns in a dict with FIFO trim respecting `CTX_TOKENS`.
-* Compose prompt as: system + compressed history + new user.
-* Acceptance: asking follow-ups within same `conversation_id` uses prior turns; memory resets if new id.
-
 
 
 

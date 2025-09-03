@@ -1,20 +1,3 @@
-"""
-# imports config from utils/config.py
-# loads the system prompt via agents/general.py
-# composes a final prompt using agents/general.py
-# calls the active provider's generate(...)
-# maps environment caps (temp, num_ctx...) to provider options
-# returns a typed response model or raises HTTPException on provider errors
-
-
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
-
-from utils import config
-from agents.general import load_system_prompt
-from agents.base import build_prompt
-"""
 
 
 from fastapi import FastAPI, HTTPException, Response, Request
