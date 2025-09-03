@@ -1,7 +1,7 @@
 # Pi FastAPI Agent Server
 
 Lightweight multi-agent server built on **FastAPI**, designed to run on Raspberry Pi.  
-Current version: **Phase 2** — single agent, Ollama provider, non-stream `/chat`.
+Current version: **Phase 2** — single agent, Ollama provider, stream/non-stream `/chat`, conversation memory.
 
 ---
 
@@ -14,6 +14,8 @@ Current version: **Phase 2** — single agent, Ollama provider, non-stream `/cha
   - System + user prompt composition
   - Provider abstraction (Ollama implemented)
   - Configurable model, context length, max tokens, temperature
+  - Stream and non-stream responses
+  - Limited conversational memory
 - ✅ **Environment-based config** (`.env` or defaults)
 - ✅ **Error handling** (`ProviderError` → 502; validation errors → 422)
 
@@ -32,6 +34,7 @@ prompts/
   general_system.txt # system prompt for the general agent
 utils/
   config.py          # centralized configuration loader
+  memory.py
 app.py               # FastAPI entry point (endpoints & routing)
 .env                 # environment variables (not committed)
 .gitignore
@@ -88,12 +91,21 @@ Send a prompt to an agent and get a reply.
 Set in `.env` (or defaults used):
 
 ```ini
+# Provider
 PROVIDER=ollama
 OLLAMA_MODEL_GENERAL=qwen2.5:3b-instruct
 OLLAMA_HOST=http://127.0.0.1:11434
+
+# Limits
 CTX_TOKENS=2048
 MAX_TOKENS=200
 TEMPERATURE=0.7
+
+# Phase 2 memory
+ENABLE_MEMORY=true
+MEMORY_MAX_TURNS=8
+MEMORY_TTL_MIN=60
+MEMORY_MAX_CONVERSATIONS=500
 ```
 
 ---
@@ -136,16 +148,30 @@ curl http://127.0.0.1:8000/agents
 # ["general"]
 
 curl -s -X POST http://127.0.0.1:8000/chat   -H "Content-Type: application/json"   -d '{"message":"say hello","agent":"general","stream":false}'
+
 ```
+
+Stream Tests:
+
+```bash
+curl -N -i -s -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"count to five","agent":"general","stream":true}'
+# note: capture returned conversation id from the "X-Conversation-Id" response header
+
+
+curl -N -s -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"and now continue to ten","agent":"general","stream":true,"conversation_id":"<from header>"}'
+```
+
 
 ---
 
-## Limitations (Phase 1)
+## Limitations (Phase 2)
 
 - Only one agent (`general`)
-- Only one provider (Ollama, non-stream mode)
-- No conversation memory
-- No streaming responses
+- Only one provider (Ollama)
 - No rate limiting or security layer
 - Logging is minimal
 
@@ -153,7 +179,6 @@ curl -s -X POST http://127.0.0.1:8000/chat   -H "Content-Type: application/json"
 
 ## Next Steps (Planned)
 
-- Phase 2: Streaming responses + short-term conversation memory
 - Phase 3: Tool calling with a safe allowlist
 - Phase 4: Add OpenAI provider (switchable backends)
 - Phase 5: Security hardening (rate limits, CORS, API key)
@@ -162,29 +187,7 @@ curl -s -X POST http://127.0.0.1:8000/chat   -H "Content-Type: application/json"
 
 ---
 
-## Tests
 
-### non-stream
 
-```
-curl -s -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"say hello","agent":"general","stream":false}'
-```
-
-### stream
-
-```
-curl -N -i -s -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"count to five","agent":"general","stream":true}'
-# note: capture returned conversation id from the "X-Conversation-Id" response header
-```
-
-```
-curl -N -s -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"and now continue to ten","agent":"general","stream":true,"conversation_id":"<from header>"}'
-```
 
 
