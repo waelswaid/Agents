@@ -15,7 +15,6 @@ from providers.base import ProviderError, GenerateReturn
 if config.PROVIDER == "ollama":
     from providers.ollama import generate as provider_generate
 
-# TODO when I implement more providers a simple if else wouldn't be enough and should be changed.
 else:
     from providers.base import generate as provider_generate  # placeholder; raises NotImplemented
 
@@ -25,7 +24,7 @@ else:
 app = FastAPI(title="Pi Agent Server", version="0.3.0")
 
 
-# --- Phase 2: tiny in-memory conversation store ---
+# in-memory conversation store
 _memory = MemoryStore(
     max_turns=config.MEMORY_MAX_TURNS,
     ttl_seconds=config.MEMORY_TTL_MIN * 60,

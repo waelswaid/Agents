@@ -10,19 +10,19 @@ Current version: 0.3.0 (**Phase 2**) — single agent, Ollama provider, stream a
   ## Contents
   - [00. Current phase report](/docs/phase2_report.md)
   - [01. Architecture](/docs/architecture.md)
-  - [02. Memory](/docs/short_memory.md)
-  - [03. Streaming](/docs/streaming.md)
-  - [04. app.py](/docs/app_py.md)
-  - [05. Glossary](/docs/glossary.md)
-  - [06. Pydantic](/docs/pydantic.md)
-  - [07. Decisions](/docs/decisions.md)
+  - [02. app.py](/docs/app_py.md)
+  - [03. agents/*](/docs/agents.md)
+  - [04. providers/*](/docs/providers.md)
+  - [05. config](/docs/config.md)
+  - [06. memory](/docs/memory.md)
+  - [07. Streaming](/docs/streaming.md)
   - [08. Roadmap](/docs/roadmap.md)
 
 
 
 
 
-## Features (current version)
+## Features
 
 - ✅ **Health check** endpoint (`/health`)
 - ✅ **List available agents** (`/agents`)
@@ -149,39 +149,10 @@ pip install -r requirements.txt
 
 ---
 
-## Run the Server
-
+## Run the Server and stream tests
 ```bash
-uvicorn app:app --host 0.0.0.0 --port 8000
+./run_tests.sh
 ```
-
-Test it:
-
-```bash
-curl http://127.0.0.1:8000/health
-# {"status":"ok"}
-
-curl http://127.0.0.1:8000/agents
-# ["general"]
-
-curl -s -X POST http://127.0.0.1:8000/chat   -H "Content-Type: application/json"   -d '{"message":"say hello","agent":"general","stream":false}'
-
-```
-
-Stream Tests:
-
-```bash
-curl -N -i -s -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"count to five","agent":"general","stream":true}'
-# note: capture returned conversation id from the "X-Conversation-Id" response header
-
-
-curl -N -s -X POST http://127.0.0.1:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"and now continue to ten","agent":"general","stream":true,"conversation_id":"<from header>"}'
-```
-
 
 ---
 
@@ -194,15 +165,6 @@ curl -N -s -X POST http://127.0.0.1:8000/chat \
 
 ---
 
-## Next Steps (Planned)
-
-- Phase 3: Tool calling with a safe allowlist
-- Phase 4: Add OpenAI provider (switchable backends)
-- Phase 5: Security hardening (rate limits, CORS, API key)
-- Phase 6: SQLite persistence & admin ops
-- Phase 7: Tiny RAG starter for local docs
-
----
 
 
 
