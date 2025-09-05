@@ -1,6 +1,6 @@
 # Agents Module Documentation
 
-## base.py
+## agents/base.py
 
 ### Overview
 The `base.py` module provides functionality for assembling chat prompts by combining system instructions, conversation history, and user messages using XML-style formatting.
@@ -18,21 +18,7 @@ The `base.py` module provides functionality for assembling chat prompts by combi
 **Returns:**
 - `str`: Formatted history as string with XML-style tags
 
-**Example:**
-```python
-history = [
-    {"role": "user", "content": "Hello"},
-    {"role": "assistant", "content": "Hi there!"}
-]
-rendered = _render_history(history)
-# Output:
-# <user>
-# Hello
-# </user>
-# <assistant>
-# Hi there!
-# </assistant>
-```
+
 
 #### `build_prompt(system: str, user: str, history: List[Dict[str, str]] | None = None) -> str`
 **Purpose:** Assembles a complete prompt combining system instructions, chat history, and current user message.
@@ -45,35 +31,73 @@ rendered = _render_history(history)
 **Returns:**
 - `str`: Complete formatted prompt with XML-style tags
 
-**Example:**
+## Full Code
+
+- agents/base.py
+
 ```python
-prompt = build_prompt(
-    system="You are a helpful assistant.",
-    user="What's the weather?",
-    history=[
-        {"role": "user", "content": "Hello"},
-        {"role": "assistant", "content": "Hi there!"}
-    ]
-)
-# Output:
-# <system>
-# You are a helpful assistant.
-# </system>
-# 
-# <user>
-# Hello
-# </user>
-# <assistant>
-# Hi there!
-# </assistant>
-# 
-# <user>
-# What's the weather?
-# </user>
+"""
+provides the generic function that assembles a chat prompt from:
+
+* a system block (behaviour/rules)
+* a user block (the user's message)
+* a placeholder for future chat history
+
+"""
+
+from typing import List, Dict, Iterable
+
+def _render_history(history: Iterable[Dict[str, str]]) -> str:
+    parts: List[str] = []
+    for turn in history:
+        role = turn.get("role", "").strip().lower()
+        content = turn.get("content", "")
+        if not content:
+            continue
+        if role == "assistant": # response from the model
+            parts.append(f"<assistant>\n{content}\n</assistant>")
+        else:
+            parts.append(f"<user>\n{content}\n</user>")
+    return "\n".join(parts)
+
+def build_prompt(system: str, user: str, history: List[Dict[str, str]] | None = None) -> str:
+    """
+    Prompt composer with optional short history:
+    <system>...</system>
+    <user/assistant history...>
+    <user>...</user>
+    """
+    hist = _render_history(history or [])
+    # contains the formatted conversation history that provides context for the model's next response
+    if hist:
+        return (
+            f"<system>\n{system}\n</system>\n\n"
+            f"{hist}\n\n"
+            f"<user>\n{user}\n</user>"
+        )
+    else:
+        return (
+            f"<system>\n{system}\n</system>\n\n"
+            f"<user>\n{user}\n</user>"
+        )
 ```
 
-## Implementation Notes
-- Uses XML-style tags for clear role separation
-- Handles empty/invalid messages gracefully
-- Supports optional history for stateless operation
-- Maintains consistent formatting for model input
+
+## agents/general.py
+
+### Overview
+- loads prompts/general_system.txt for the general agent from the prompts/ folder
+
+## Full Code
+
+- agents/general.py
+
+```python
+# load the system prompt text for the general agent from the prompts/ folder
+from pathlib import Path
+
+def load_system_prompt() -> str:
+    p = Path(__file__).resolve().parents[1] / "prompts" / "general_system.txt"
+    return p.read_text(encoding="utf-8").strip()
+
+```

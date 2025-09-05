@@ -8,15 +8,12 @@ Current version: 0.3.0 (**Phase 2**) — single agent, Ollama provider, stream a
 ## Docs Contents
 
   ## Contents
-  - [00. Current phase report](/docs/phase2_report.md)
-  - [01. Architecture](/docs/architecture.md)
-  - [02. app.py](/docs/app_py.md)
-  - [03. agents/*](/docs/agents.md)
-  - [04. providers/*](/docs/providers.md)
-  - [05. config](/docs/config.md)
-  - [06. memory](/docs/memory.md)
-  - [07. Streaming](/docs/streaming.md)
-  - [08. Roadmap](/docs/roadmap.md)
+  - [01. app.py](/docs/app_py.md)
+  - [02. agents/*](/docs/agents.md)
+  - [03. providers/*](/docs/providers.md)
+  - [04. config](/docs/config.md)
+  - [05. memory](/docs/memory.md)
+  - [06. Streaming](/docs/streaming.md)
 
 
 
@@ -57,72 +54,6 @@ app.py               # FastAPI entry point (endpoints & routing)
 .gitignore
 requirements.txt
 README.md
-```
-
----
-
-## Endpoints
-
-### `GET /health`
-
-Returns server health.
-
-**Response**
-```json
-{ "status": "ok" }
-```
-
-### `GET /agents`
-
-Returns available agent names.
-
-**Response**
-```json
-["general"]
-```
-
-### `POST /chat`
-
-Send a prompt to an agent and get a reply.
-
-**Request body**
-```json
-{
-  "message": "say hello",
-  "agent": "general",
-  "stream": false
-}
-```
-
-**Response**
-```json
-{
-  "reply": "Hello! (from the model)"
-}
-```
-
----
-
-## Configuration
-
-Set in `.env` (or defaults used):
-
-```ini
-# Provider
-PROVIDER=ollama
-OLLAMA_MODEL_GENERAL=qwen2.5:3b-instruct
-OLLAMA_HOST=http://127.0.0.1:11434
-
-# Limits
-CTX_TOKENS=2048
-MAX_TOKENS=200
-TEMPERATURE=0.7
-
-# Phase 2 memory
-ENABLE_MEMORY=true
-MEMORY_MAX_TURNS=8
-MEMORY_TTL_MIN=60
-MEMORY_MAX_CONVERSATIONS=500
 ```
 
 ---
