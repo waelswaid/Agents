@@ -29,8 +29,8 @@ Create the following structure:
 
 ```
 agents/
-  base.py              # Agent protocol with plan() & act()
-  general.py           # Current general chat agent (no changes yet)
+  agents_base.py              # Agent protocol with plan() & act()
+  agents_general.py           # Current general chat agent (no changes yet)
   dev_generalist.py    # Empty stub for now
 
 tools/
