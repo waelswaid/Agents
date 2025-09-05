@@ -210,33 +210,6 @@ return StreamingResponse(streamer(), media_type="text/plain; charset=utf-8", hea
 | Content-Type | `application/json` or `text/plain; charset=utf-8` |
 
 
-## 6) Provider Design
-
-
-providers share a **common interface**:
-
-```python
-# providers/base.py
-class ProviderError(Exception):
-    pass
-
-GenerateReturn = Union[str, AsyncIterator[str]]
-
-async def generate(prompt: str, *, model: str, stream: bool = False, options: Optional[Dict[str, Any]] = None) -> GenerateReturn:
-    raise NotImplementedError
-```
-- **Non‑stream** → returns a **string** with the full reply.
-- **Stream** → returns an **async iterator of strings** (chunks).
-- The app uses this uniformly and focuses on HTTP and memory, not on backend details.
-
-## 7) Error Handling & HTTP Status Codes
-
-
-- **`ProviderError` → `HTTPException(502)`**: clear separation between server and the provider (model backend). A 502 means the downstream model failed or was unreachable.
-- **Validation errors (Pydantic)** → FastAPI returns **422** with details.
-- **Unhandled exceptions** → FastAPI returns **500**; keep logs enabled for debugging.
-
-## 8) Request Lifecycle
 
 
 ## Full Code
@@ -254,6 +227,8 @@ from agents.agents_general import load_system_prompt
 from agents.agents_base import build_prompt
 from utils.memory import MemoryStore
 from providers.providers_base import ProviderError, GenerateReturn
+from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 
 # Provider switch
@@ -263,11 +238,19 @@ if config.PROVIDER == "ollama":
 else:
     from providers.providers_base import generate as provider_generate  # placeholder; raises NotImplemented
 
-
+logger = logging.getLogger(__name__)
 
 # creates FastAPI instance
 app = FastAPI(title="Pi Agent Server", version="0.3.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # List of origins that can access the API
+    allow_methods=["*"],  # list of allowed HTTP methods
+    allow_headers=["*"],  # list of allowed headers
+)
+
+ALLOWED_AGENTS = ["general"]
 
 # in-memory conversation store
 _memory = MemoryStore(
@@ -307,8 +290,12 @@ class ChatResponse(BaseModel):
 
 
 
-@app.post("/chat", response_model=ChatResponse) 
-async def chat(req: ChatRequest, request: Request): 
+@app.post("/chat", response_model=ChatResponse)
+
+async def chat(req: ChatRequest, request: Request):
+    if req.agent not in ALLOWED_AGENTS:
+        raise HTTPException(status_code=400, detail="unknown agent")
+    # ensure conversation id
     convo_id = req.conversation_id or str(uuid4())
 
     # assemble history if enabled
@@ -355,8 +342,12 @@ async def chat(req: ChatRequest, request: Request):
                 acc.append(chunk)
                 # stop if client disconnected
                 if await request.is_disconnected():
+                    logger.info("client disconnected, stopping stream")
                     break
                 yield chunk.encode("utf-8")
+        except Exception as e:
+            # log but ignore errors in streaming
+            logger.exception("streaming error occured: %s", str(e))
         finally: # This block executes after streaming completes, whether it ends normally or due to an error
             if config.ENABLE_MEMORY:
                 # Stores the user's original message

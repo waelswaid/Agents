@@ -135,8 +135,12 @@ class MemoryStore:
     # this method is used to retrieve conversation history
     async def get(self, convo_id: str) -> List[Turn]:
         await self._maybe_prune(convo_id) # Check and remove if expired
-        dq = self._store.get(convo_id) # Get conversation queue
-        return list(dq) if dq else [] # return active conversations
+        async with self._lock:
+            dq = self._store.get(convo_id) # Get conversation queue
+            if not dq:
+                return []
+            self._last[convo_id] = time.time() # Update last access time
+            return list(dq) # return active conversations
 
     # this method is used to append a new message to the conversation
     async def append(self, convo_id: str, role: str, content: str) -> None:

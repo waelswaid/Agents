@@ -65,6 +65,9 @@ async def generate(
             r = await client.post(f"{OLLAMA_HOST}/api/generate", json=payload)
             r.raise_for_status()
             data = r.json()
+            err = data.get("error")
+            if isinstance(err, str) and err:
+                raise ProviderError(f"Ollama error: {err}")
             reply = data.get("response", "")
             if not isinstance(reply, str):
                 raise ProviderError("Unexpected response type from Ollama.")

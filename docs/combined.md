@@ -6,21 +6,42 @@
 
 ```
 agents/
-  agents_base.py            # prompt builder
-  agents_general.py         # general agent system prompt loader
-providers/
-  providers_base.py            # provider contract + ProviderError
-  providers_ollama.py          # Ollama provider implementation (non-stream)
-prompts/
-  general_system.txt # system prompt for the general agent
-utils/
-  config.py          # centralized configuration loader
-  memory.py
-app.py               # FastAPI entry point (endpoints & routing)
-.env                 # environment variables (not committed)
-.gitignore
-requirements.txt
-README.md
+  src/
+    __init__.py
+    app.py               # FastAPI entry point (endpoints & routing)
+
+    agents/
+      __init__.py
+      agents_base.py            # prompt builder
+      agents_general.py         # general agent system prompt loader
+
+    providers/
+      __init__.py
+      providers_base.py            # provider contract + ProviderError
+      providers_ollama.py          # Ollama provider implementation (non-stream)
+
+    prompts/
+      general_system.txt # system prompt for the general agent
+
+    utils/
+      __init__.py
+      config.py          # centralized configuration loader
+      memory.py
+
+  tests/
+    conftest.py
+    test_agents_prompt.py
+    test_api_basic.py
+    test_api_stream_mid_error.py
+    test_config.py
+    test_memory_store.py
+    test_providers_ollama.py
+
+  .env                 # environment variables (not committed)
+  .gitignore
+  requirements.txt
+  requirements-dev.txt
+  README.md
 ```
 
 ---
@@ -36,6 +57,15 @@ httpx==0.27.2
 python-dotenv==1.0.1
 pydantic==2.8.2
 ```
+
+Current `requirements-dev.txt`:
+```
+pytest==8.3.2
+pytest-asyncio==0.23.8
+respx==0.21.1
+anyio==4.4.0
+```
+
 ---
 
 ## .env
@@ -61,14 +91,14 @@ MEMORY_MAX_CONVERSATIONS=500
 ```
 ---
 
-# `app.py` — Documentation
+# `src/app.py` — Documentation
 
 
 
 ## 1) High‑Level Overview
 
 
-At a glance, the `app.py` file does three big things:
+At a glance, the `src/app.py` file does three big things:
 
 1. **Sets up the web server** using FastAPI: defines endpoints like `/health`, `/agents`, and `/chat`.
 2. **Loads configuration and helpers**: provider selection, prompt building, and the in‑memory memory store.
@@ -273,33 +303,6 @@ return StreamingResponse(streamer(), media_type="text/plain; charset=utf-8", hea
 | Content-Type | `application/json` or `text/plain; charset=utf-8` |
 
 
-## 6) Provider Design
-
-
-providers share a **common interface**:
-
-```python
-# providers/base.py
-class ProviderError(Exception):
-    pass
-
-GenerateReturn = Union[str, AsyncIterator[str]]
-
-async def generate(prompt: str, *, model: str, stream: bool = False, options: Optional[Dict[str, Any]] = None) -> GenerateReturn:
-    raise NotImplementedError
-```
-- **Non‑stream** → returns a **string** with the full reply.
-- **Stream** → returns an **async iterator of strings** (chunks).
-- The app uses this uniformly and focuses on HTTP and memory, not on backend details.
-
-## 7) Error Handling & HTTP Status Codes
-
-
-- **`ProviderError` → `HTTPException(502)`**: clear separation between server and the provider (model backend). A 502 means the downstream model failed or was unreachable.
-- **Validation errors (Pydantic)** → FastAPI returns **422** with details.
-- **Unhandled exceptions** → FastAPI returns **500**; keep logs enabled for debugging.
-
-## 8) Request Lifecycle
 
 
 ## Full Code
@@ -317,6 +320,8 @@ from agents.agents_general import load_system_prompt
 from agents.agents_base import build_prompt
 from utils.memory import MemoryStore
 from providers.providers_base import ProviderError, GenerateReturn
+from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 
 # Provider switch
@@ -326,11 +331,19 @@ if config.PROVIDER == "ollama":
 else:
     from providers.providers_base import generate as provider_generate  # placeholder; raises NotImplemented
 
-
+logger = logging.getLogger(__name__)
 
 # creates FastAPI instance
 app = FastAPI(title="Pi Agent Server", version="0.3.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # List of origins that can access the API
+    allow_methods=["*"],  # list of allowed HTTP methods
+    allow_headers=["*"],  # list of allowed headers
+)
+
+ALLOWED_AGENTS = ["general"]
 
 # in-memory conversation store
 _memory = MemoryStore(
@@ -370,8 +383,12 @@ class ChatResponse(BaseModel):
 
 
 
-@app.post("/chat", response_model=ChatResponse) 
-async def chat(req: ChatRequest, request: Request): 
+@app.post("/chat", response_model=ChatResponse)
+
+async def chat(req: ChatRequest, request: Request):
+    if req.agent not in ALLOWED_AGENTS:
+        raise HTTPException(status_code=400, detail="unknown agent")
+    # ensure conversation id
     convo_id = req.conversation_id or str(uuid4())
 
     # assemble history if enabled
@@ -418,8 +435,12 @@ async def chat(req: ChatRequest, request: Request):
                 acc.append(chunk)
                 # stop if client disconnected
                 if await request.is_disconnected():
+                    logger.info("client disconnected, stopping stream")
                     break
                 yield chunk.encode("utf-8")
+        except Exception as e:
+            # log but ignore errors in streaming
+            logger.exception("streaming error occured: %s", str(e))
         finally: # This block executes after streaming completes, whether it ends normally or due to an error
             if config.ENABLE_MEMORY:
                 # Stores the user's original message
@@ -438,10 +459,10 @@ async def chat(req: ChatRequest, request: Request):
 
 # Agents Module Documentation
 
-## agents/agents_base.py
+## src/agents/agents_base.py
 
 ### Overview
-The `base.py` module provides functionality for assembling chat prompts by combining system instructions, conversation history, and user messages using XML-style formatting.
+The `agents_base.py` module provides functionality for assembling chat prompts by combining system instructions, conversation history, and user messages using XML-style formatting.
 
 ### Functions
 
@@ -544,7 +565,7 @@ def load_system_prompt() -> str:
 # config.py Documentation
 
 ## Overview
-The `utils/config.py` module manages environment-based configuration for the agent server, providing defaults and type-safe configuration values.
+The `src/utils/config.py` module manages environment-based configuration for the agent server, providing defaults and type-safe configuration values.
 
 ## Environment Variables
 
@@ -594,7 +615,7 @@ response = await client.generate(
 ```
 
 ## Full Code
-- utils/config.py
+- src/utils/config.py
 ```python
 # centralized configuration loader
 # runs load_dotenv() to read .env
@@ -637,7 +658,7 @@ TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
 # Memory Module Documentation
 
 ## Overview
-The `utils/memory.py` module implements a lightweight, thread-safe, in-memory conversation store designed for Raspberry Pi constraints. It provides TTL-based expiration and LRU eviction.
+The `src/utils/memory.py` module implements a lightweight, thread-safe, in-memory conversation store designed for Raspberry Pi constraints. It provides TTL-based expiration and LRU eviction.
 
 ## Classes
 
@@ -733,7 +754,7 @@ turns = await memory.get("conv1")
 
 ## Full Code
 
-- utils/memory.py
+- src/utils/memory.py
 ```python
 from __future__ import annotations
 from collections import deque
@@ -771,8 +792,12 @@ class MemoryStore:
     # this method is used to retrieve conversation history
     async def get(self, convo_id: str) -> List[Turn]:
         await self._maybe_prune(convo_id) # Check and remove if expired
-        dq = self._store.get(convo_id) # Get conversation queue
-        return list(dq) if dq else [] # return active conversations
+        async with self._lock:
+            dq = self._store.get(convo_id) # Get conversation queue
+            if not dq:
+                return []
+            self._last[convo_id] = time.time() # Update last access time
+            return list(dq) # return active conversations
 
     # this method is used to append a new message to the conversation
     async def append(self, convo_id: str, role: str, content: str) -> None:
@@ -817,7 +842,7 @@ you are a helpful and efficient assistant. keep answers concise unless asked for
 
 # Providers Module Documentation
 ---
-## providers/providers_base.py
+## src/providers/providers_base.py
 
 ### Overview
 Defines the base provider contract and error handling for LLM interactions.
@@ -878,7 +903,7 @@ async def generate(
 
 ---
 
-## providers/providers_ollama.py
+## src/providers/providers_ollama.py
 
 ### Overview
 Implements the Ollama API provider with streaming and non-streaming support.
@@ -939,7 +964,7 @@ async for chunk in await generate("Hello!", model="qwen:3b", stream=True):
 
 ## Full Code
 
-- providers/providers_ollama.py
+- src/providers/providers_ollama.py
 ```python
 import json
 import httpx
@@ -1008,6 +1033,9 @@ async def generate(
             r = await client.post(f"{OLLAMA_HOST}/api/generate", json=payload)
             r.raise_for_status()
             data = r.json()
+            err = data.get("error")
+            if isinstance(err, str) and err:
+                raise ProviderError(f"Ollama error: {err}")
             reply = data.get("response", "")
             if not isinstance(reply, str):
                 raise ProviderError("Unexpected response type from Ollama.")

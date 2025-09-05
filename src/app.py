@@ -9,6 +9,8 @@ from agents.agents_general import load_system_prompt
 from agents.agents_base import build_prompt
 from utils.memory import MemoryStore
 from providers.providers_base import ProviderError, GenerateReturn
+from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 
 # Provider switch
@@ -18,11 +20,19 @@ if config.PROVIDER == "ollama":
 else:
     from providers.providers_base import generate as provider_generate  # placeholder; raises NotImplemented
 
-
+logger = logging.getLogger(__name__)
 
 # creates FastAPI instance
 app = FastAPI(title="Pi Agent Server", version="0.3.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # List of origins that can access the API
+    allow_methods=["*"],  # list of allowed HTTP methods
+    allow_headers=["*"],  # list of allowed headers
+)
+
+ALLOWED_AGENTS = ["general"]
 
 # in-memory conversation store
 _memory = MemoryStore(
@@ -77,8 +87,8 @@ class ChatResponse(BaseModel):
 async def chat(req: ChatRequest, request: Request): # (3)async function, input is validated against ChatRequest model.
     #(3) allows the function to pause and wait (with await) for slow operations without blocking the entire server.
     # if 10 users hit /chat at once, this allows the server to juggle them concurrently, without async it would proccess them one by one
-    # 
-    # 
+    if req.agent not in ALLOWED_AGENTS:
+        raise HTTPException(status_code=400, detail="unknown agent")
     # ensure conversation id
     convo_id = req.conversation_id or str(uuid4())
 
@@ -126,8 +136,12 @@ async def chat(req: ChatRequest, request: Request): # (3)async function, input i
                 acc.append(chunk)
                 # stop if client disconnected
                 if await request.is_disconnected():
+                    logger.info("client disconnected, stopping stream")
                     break
                 yield chunk.encode("utf-8")
+        except Exception as e:
+            # log but ignore errors in streaming
+            logger.exception("streaming error occured: %s", str(e))
         finally: # This block executes after streaming completes, whether it ends normally or due to an error
             if config.ENABLE_MEMORY:
                 # Stores the user's original message

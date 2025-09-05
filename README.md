@@ -39,21 +39,42 @@ Current version: 0.3.0 (**Phase 2**) — single agent, Ollama provider, stream a
 
 ```
 agents/
-  agents_base.py            # prompt builder
-  agents_general.py         # general agent system prompt loader
-providers/
-  providers_base.py            # provider contract + ProviderError
-  providers_ollama.py          # Ollama provider implementation (non-stream)
-prompts/
-  general_system.txt # system prompt for the general agent
-utils/
-  config.py          # centralized configuration loader
-  memory.py
-app.py               # FastAPI entry point (endpoints & routing)
-.env                 # environment variables (not committed)
-.gitignore
-requirements.txt
-README.md
+  src/
+    __init__.py
+
+    agents/
+      agents_base.py            # prompt builder
+      agents_general.py         # general agent system prompt loader
+      __init__.py
+
+    providers/
+      __init__.py
+      providers_base.py            # provider contract + ProviderError
+      providers_ollama.py          # Ollama provider implementation (non-stream)
+
+    prompts/
+      general_system.txt # system prompt for the general agent
+
+    utils/
+      __init__.py
+      config.py          # centralized configuration loader
+      memory.py
+
+    app.py               # FastAPI entry point (endpoints & routing)
+  tests/
+    conftest.py
+    test_agents_prompt.py
+    test_api_basic.py
+    test_api_stream_mid_error.py
+    test_config.py
+    test_memory_store.py
+    test_providers_ollama.py
+
+  .env                 # environment variables (not committed)
+  .gitignore
+  requirements.txt
+  requirements-dev.txt
+  README.md
 ```
 
 ---
@@ -68,6 +89,14 @@ uvicorn[standard]==0.30.6
 httpx==0.27.2
 python-dotenv==1.0.1
 pydantic==2.8.2
+```
+
+Current `requirements-dev.txt`:
+```
+pytest==8.3.2
+pytest-asyncio==0.23.8
+respx==0.21.1
+anyio==4.4.0
 ```
 
 Install into a virtualenv:
@@ -87,14 +116,6 @@ pip install -r requirements.txt
 
 ---
 
-## Limitations (Phase 2)
-
-- Only one agent (`general`)
-- Only one provider (Ollama)
-- No rate limiting or security layer
-- Logging is minimal
-
----
 
 
 

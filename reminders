@@ -1,0 +1,5 @@
+changes this commit:
+- added CORSMiddleWare in app.py
+- project restructure
+-  thread safe reads in util/memory.get() + LRU eviction minor fix
+- added tests suite

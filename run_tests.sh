@@ -4,7 +4,7 @@
 set -e
 
 echo "Starting FastAPI server..."
-uvicorn app:app --host 0.0.0.0 --port 8000 &
+uvicorn app:app --host 0.0.0.0 --port 8000 --app-dir src &
 UVICORN_PID=$!
 
 # Give server time to start
