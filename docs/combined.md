@@ -6,11 +6,11 @@
 
 ```
 agents/
-  base.py            # prompt builder
-  general.py         # general agent system prompt loader
+  agents_base.py            # prompt builder
+  agents_general.py         # general agent system prompt loader
 providers/
-  base.py            # provider contract + ProviderError
-  ollama.py          # Ollama provider implementation (non-stream)
+  providers_base.py            # provider contract + ProviderError
+  providers_ollama.py          # Ollama provider implementation (non-stream)
 prompts/
   general_system.txt # system prompt for the general agent
 utils/
