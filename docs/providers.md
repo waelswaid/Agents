@@ -1,6 +1,6 @@
 # Providers Module Documentation
 ---
-## providers/base.py
+## providers/providers_base.py
 
 ### Overview
 Defines the base provider contract and error handling for LLM interactions.
@@ -31,7 +31,7 @@ GenerateReturn = Union[str, AsyncIterator[str]]
 
 ## Full Code
 
-- providers/base.py
+- providers/providers_base.py
 ```python
 # let's us swap/add providers later without touching endpoint logic (local/openai/deepseek...)
 # declares the abstract provider contract (generate(...)) that all providers must implement
@@ -61,7 +61,7 @@ async def generate(
 
 ---
 
-## providers/ollama.py
+## providers/providers_ollama.py
 
 ### Overview
 Implements the Ollama API provider with streaming and non-streaming support.
@@ -122,7 +122,7 @@ async for chunk in await generate("Hello!", model="qwen:3b", stream=True):
 
 ## Full Code
 
-- providers/ollama.py
+- providers/providers_ollama.py
 ```python
 import json
 import httpx

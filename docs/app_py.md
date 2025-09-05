@@ -1,4 +1,4 @@
-# `app.py` — Deep, Beginner‑Friendly Walkthrough
+# `app.py` — Documentation
 
 
 

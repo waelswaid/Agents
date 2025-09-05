@@ -1,4 +1,4 @@
-# Configuration Module Documentation
+# config.py Documentation
 
 ## Overview
 The `utils/config.py` module manages environment-based configuration for the agent server, providing defaults and type-safe configuration values.

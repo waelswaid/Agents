@@ -1,6 +1,6 @@
 # Agents Module Documentation
 
-## agents/base.py
+## agents/agents_base.py
 
 ### Overview
 The `base.py` module provides functionality for assembling chat prompts by combining system instructions, conversation history, and user messages using XML-style formatting.
@@ -33,7 +33,7 @@ The `base.py` module provides functionality for assembling chat prompts by combi
 
 ## Full Code
 
-- agents/base.py
+- agents/agents_base.py
 
 ```python
 """
@@ -83,14 +83,14 @@ def build_prompt(system: str, user: str, history: List[Dict[str, str]] | None = 
 ```
 
 
-## agents/general.py
+## agents/agents_general.py
 
 ### Overview
 - loads prompts/general_system.txt for the general agent from the prompts/ folder
 
 ## Full Code
 
-- agents/general.py
+- agents/agents_general.py
 
 ```python
 # load the system prompt text for the general agent from the prompts/ folder
