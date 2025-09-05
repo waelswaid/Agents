@@ -250,18 +250,18 @@ from typing import Optional, Dict, Any, cast, AsyncIterator
 from uuid import uuid4
 
 from utils import config
-from agents.general import load_system_prompt
-from agents.base import build_prompt
+from agents.agents_general import load_system_prompt
+from agents.agents_base import build_prompt
 from utils.memory import MemoryStore
-from providers.base import ProviderError, GenerateReturn
+from providers.providers_base import ProviderError, GenerateReturn
 
 
 # Provider switch
 if config.PROVIDER == "ollama":
-    from providers.ollama import generate as provider_generate
+    from providers.providers_ollama import generate as provider_generate
 
 else:
-    from providers.base import generate as provider_generate  # placeholder; raises NotImplemented
+    from providers.providers_base import generate as provider_generate  # placeholder; raises NotImplemented
 
 
 

@@ -127,7 +127,7 @@ async for chunk in await generate("Hello!", model="qwen:3b", stream=True):
 import json
 import httpx
 from typing import Optional, Dict, Any, AsyncIterator, Union
-from providers.base import ProviderError, GenerateReturn
+from providers.providers_base import ProviderError, GenerateReturn
 from utils.config import (
     OLLAMA_HOST,
     CTX_TOKENS,

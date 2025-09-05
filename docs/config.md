@@ -17,7 +17,7 @@ The `utils/config.py` module manages environment-based configuration for the age
 - `MEMORY_MAX_CONVERSATIONS` (int): Maximum concurrent conversations (default: 500)
 
 ### Model Parameters
-- `CTX_TOKENS` (int): Context window size (default: 4096)
+- `CTX_TOKENS` (int): Context window size (default: 2048)
 - `MAX_TOKENS` (int): Maximum tokens to generate (default: 1024)
 - `TEMPERATURE` (float): Response randomness (default: 0.7)
 

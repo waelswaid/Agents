@@ -313,18 +313,18 @@ from typing import Optional, Dict, Any, cast, AsyncIterator
 from uuid import uuid4
 
 from utils import config
-from agents.general import load_system_prompt
-from agents.base import build_prompt
+from agents.agents_general import load_system_prompt
+from agents.agents_base import build_prompt
 from utils.memory import MemoryStore
-from providers.base import ProviderError, GenerateReturn
+from providers.providers_base import ProviderError, GenerateReturn
 
 
 # Provider switch
 if config.PROVIDER == "ollama":
-    from providers.ollama import generate as provider_generate
+    from providers.providers_ollama import generate as provider_generate
 
 else:
-    from providers.base import generate as provider_generate  # placeholder; raises NotImplemented
+    from providers.providers_base import generate as provider_generate  # placeholder; raises NotImplemented
 
 
 
@@ -560,7 +560,7 @@ The `utils/config.py` module manages environment-based configuration for the age
 - `MEMORY_MAX_CONVERSATIONS` (int): Maximum concurrent conversations (default: 500)
 
 ### Model Parameters
-- `CTX_TOKENS` (int): Context window size (default: 4096)
+- `CTX_TOKENS` (int): Context window size (default: 2048)
 - `MAX_TOKENS` (int): Maximum tokens to generate (default: 1024)
 - `TEMPERATURE` (float): Response randomness (default: 0.7)
 
@@ -809,7 +809,7 @@ contains a single prompt inside general_system.txt
 
 ### contents
 
-- prompts/general_text.txt
+- prompts/general_system.txt
 ```text
 you are a helpful and efficient assistant. keep answers concise unless asked for depth.
 ```
@@ -944,7 +944,7 @@ async for chunk in await generate("Hello!", model="qwen:3b", stream=True):
 import json
 import httpx
 from typing import Optional, Dict, Any, AsyncIterator, Union
-from providers.base import ProviderError, GenerateReturn
+from providers.providers_base import ProviderError, GenerateReturn
 from utils.config import (
     OLLAMA_HOST,
     CTX_TOKENS,
