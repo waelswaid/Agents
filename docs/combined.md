@@ -6,42 +6,32 @@
 
 ```
 agents/
-  src/
-    __init__.py
-    app.py               # FastAPI entry point (endpoints & routing)
+│
+├── src/
+│   ├── app.py                # FastAPI entry point, endpoints
+│   │
+│   ├── agents/               # Logic for agent behavior
+│   │   ├── agents_base.py    # Prompt building, history formatting
+│   │   └── agents_general.py # General agent system prompt loader
+│   │
+│   ├── providers/            # LLM integrations
+│   │   ├── providers_base.py # Provider interface & error handling
+│   │   └── providers_ollama.py # Ollama implementation
+│   │
+│   ├── prompts/              # Text files for system prompts
+│   │   └── general_system.txt
+│   │
+│   └── utils/                 # Utility modules
+│       ├── config.py          # Environment & settings
+│       └── memory.py          # Short-term memory system
+│
+├── tests/                     # Pytest test suite
+│
+├── .env                        # Environment variables (NOT in git)
+├── requirements.txt            # Runtime dependencies
+├── requirements-dev.txt        # Dev/test dependencies
+└── README.md
 
-    agents/
-      __init__.py
-      agents_base.py            # prompt builder
-      agents_general.py         # general agent system prompt loader
-
-    providers/
-      __init__.py
-      providers_base.py            # provider contract + ProviderError
-      providers_ollama.py          # Ollama provider implementation (non-stream)
-
-    prompts/
-      general_system.txt # system prompt for the general agent
-
-    utils/
-      __init__.py
-      config.py          # centralized configuration loader
-      memory.py
-
-  tests/
-    conftest.py
-    test_agents_prompt.py
-    test_api_basic.py
-    test_api_stream_mid_error.py
-    test_config.py
-    test_memory_store.py
-    test_providers_ollama.py
-
-  .env                 # environment variables (not committed)
-  .gitignore
-  requirements.txt
-  requirements-dev.txt
-  README.md
 ```
 
 ---

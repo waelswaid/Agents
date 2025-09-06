@@ -7,14 +7,14 @@
 # (3) incoming HTTP requests are just raw text/bytes(JSON, etc). FastApi parses them into python objects (e.g. ChatRequest class)
 # (4) when you return a python dict/object, fastapi automatically converts it into JSON so clients can read it.
 
-fastapi==0.112.2
+fastapi
 
 
 # ASGI server that runs fast api
 # fastapi itself is just framework code, to actually listen on on a port and handle network traffic you need a server (uvicorn).
 # analogy: fastapi is the restaurant kitchen, and uvicorn is the waiter.
 
-uvicorn[standard]==0.30.6
+uvicorn[standard]
 
 
  
@@ -26,18 +26,18 @@ uvicorn[standard]==0.30.6
 # (2) async: let's you define a function that can that can pause while waiting for something slow (like a network request).
     # await: tells python 'wait here untill this async task is completed'
 
-httpx==0.27.2
+httpx
 
 
 # a package that lets you load environment variables from .env file into python's os.environ
-python-dotenv==1.0.1
+python-dotenv
 
 
 
 # a data validation and settings management library, in app.py your request/response schemas (ChatRequest, ChatResponse) subclass pydantic.BaseModel.
 # automatically validates inputs( message must be 1-4000, agent defaults to "general", etc)
 
-pydantic==2.8.2
+pydantic
 
 
 

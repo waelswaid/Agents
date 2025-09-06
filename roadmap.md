@@ -1,269 +1,173 @@
+# Roadmap: Pi Agent Server → AI Dev Agent Platform
 
-# Roadmap to Building a Developer AI Agent
-
-This document provides a concrete, step-by-step roadmap to evolve your current FastAPI project into a **generalist Developer AI Agent**, while keeping every design decision **future-proof** for later scaling into a multi-agent dev team.
-
----
-
-## Guiding Principles
-
-* **Stable interfaces:** Maintain backward compatibility by adding new optional fields rather than breaking changes.
-* **One abstraction per concern:**
-  - `Agent` — reasoning + policy
-  - `Tool` — capability
-  - `Provider` — LLM connection
-  - `Memory` — short/long-term data
-  - `Orchestrator` — only when multiple agents are added
-* **Local-first, safe execution:** All tools are read-only by default. Write access must be explicitly enabled and confirmed by a human.
-* **Deterministic logs:** Every tool interaction is logged for replay and auditing.
+This roadmap shows how we will evolve the Pi Agent Server into a **full platform that rents AI developer agents**.  
+We start by using **LangChain only inside the agent layer** to quickly deliver a working agent + demo.  
+As we progress, LangChain will be **gradually replaced by fully custom code** while keeping the API and external behavior stable.
 
 ---
 
-# Phase 0 — Prepare the Skeleton
+## Core Principles
 
-**Goal:** Introduce project structure without changing behavior.
+- **Stable interfaces** – `/chat` stays backward-compatible throughout.  
+- **Local-first safety** – all tools start **read-only**, with strict path guards, timeouts, and output caps.  
+- **Layered design** – transport, provider, memory, and governance remain **custom** and separate from agent orchestration.  
+- **Easy swap-out** – LangChain is confined to one internal interface (`AgentRunner`) so replacing it later is seamless.
 
-### Changes
+---
 
-Create the following structure:
-
+## Architecture Overview
 ```
 agents/
-  agents_base.py              # Agent protocol with plan() & act()
-  agents_general.py           # Current general chat agent (no changes yet)
-  dev_generalist.py    # Empty stub for now
-
-tools/
-  __init__.py
-  fs_read.py           # Repo browsing and search tools
-  analysis.py          # Static analysis adapters
-  tests.py             # Test runner adapters
-  patch.py             # Diff/patch proposer
-
-memory/
-  short_term.py        # Existing in-RAM conversation memory
-  long_term.py         # Stub for long-term memory
-
-orchestration/
-  router.py            # Stub for future multi-agent routing
+│
+├── runner.py # Stable interface: AgentRunner base class
+├── runner_lc.py # TEMP LangChain-based implementation
+├── runner_custom.py # FUTURE fully custom implementation
+│
+├── tools/ # Pure Python, read-only tools
+│ ├── fs_read.py # grep, read_text, outline_python
+│ ├── analysis.py # later: pylint, ruff, bandit
+│ ├── tests.py # later: pytest discovery/runner
+│ └── patch.py # later: diff generation
+│
+└── ...
 ```
 
-**API compatibility:**  
-Keep `POST /chat` unchanged, but add `"agent": "dev_generalist"` as an optional field.
-
-**Acceptance check:**  
-`curl` requests to `/chat` should still behave exactly as before.
-
----
-
-# Phase 1 — Read-only Developer Agent (Repo Understanding)
-
-**Goal:** The agent can read the codebase, answer questions, and provide citations.
-
-### Tools: `tools/fs_read.py`
-
-* `list_repo(root: str) -> dict`
-* `read_text(path: str, max_bytes: int) -> str`
-* `grep(pattern: str, path: str, ignore: list[str]) -> list`
-* `outline_python(path: str) -> list`
-
-Safety: Restrict access to project directory only.
-
-### Agent: `agents/dev_generalist.py`
-
-* Uses your LLM provider to reason.
-* Prioritizes targeted reads and outlines over reading entire files.
-* Returns citations in the format: `file:path#line_start-line_end`.
-
-### API Example
-
-```json
-POST /chat
-{
-  "agent": "dev_generalist",
-  "message": "Explain utils/memory.py get() step by step"
-}
-```
-
-### Acceptance Checks
-
-* Agent can locate `/chat` definition and explain validation with citations.
-* Agent can find provider timeout settings and cite them.
+**FastAPI + Provider + Memory**  
+These stay completely **custom**:
+- `/chat` endpoint and streaming logic
+- Provider modules (`providers_ollama.py`, future `providers_openai.py`)
+- Short-term memory (`MemoryStore`)
+- JSONL logs, safety checks, governance
 
 ---
 
-# Phase 2 — Static Analysis & Quality Signals
+## Phase Plan
 
-**Goal:** Run static analyzers safely and summarize actionable results.
-
-### Tools: `tools/analysis.py`
-
-* `run_pylint(paths: list[str], max_seconds: int) -> str`
-* `run_ruff(paths: list[str], max_seconds: int) -> str`
-* `run_bandit(paths: list[str], max_seconds: int) -> str`
-
-Safety: Allowlist binaries, strict timeouts, no external side effects.
-
-### Agent Updates
-
-* Chooses when to run analyzers vs. pure reasoning.
-* Summarizes top 5 issues with file locations and suggested fixes.
-
-### Acceptance Checks
-
-* Example prompt: “Audit providers/ollama.py for pitfalls.”
-* Timeouts handled gracefully without crashing.
+### **Phase 0 – Skeleton Setup (no behavior change)**
+- Create folder structure: `tools/`, `agents/runner.py`, `agents/runner_lc.py`.  
+- Keep `/chat` identical, just allow `"agent":"dev_generalist"`.  
+- Implement empty stubs for tools (`fs_read.py` functions with strict path guards).  
+- **Acceptance:** old API requests behave exactly as before.
 
 ---
 
-# Phase 3 — Test Discovery & Runner
+### **Phase 1 – LangChain-Backed Developer Agent (Demo Ready)**
+Goal: a **working dev agent** that can read code safely and answer with **citations**.
 
-**Goal:** Discover and run tests, then explain failures.
+**LangChain usage (temporary):**
+- Use LangChain **only inside `runner_lc.py`**:
+  - Agent planning and orchestration (`grep` → `read_text` → synthesize answer).
+  - Wrap tools as `StructuredTool` for validation.
+  - Optional output parsing (`PydanticOutputParser`) for structured formats.
+  - LangChain callbacks for temporary tracing.
 
-### Tools: `tools/tests.py`
+**Custom remains:**
+- `/chat` transport, streaming, partial-save, and error handling.
+- Provider and memory.
+- JSONL logging (source of truth).
 
-* `discover_pytests(root: str) -> list[str]`
-* `run_pytest(args: list[str], max_seconds: int) -> str`
-
-Safety: Sandbox, disable network, enforce strict timeouts.
-
-### Agent Behavior
-
-1. Discover tests.
-2. Run tests.
-3. Parse failures and explain them.
-
----
-
-# Phase 4 — Patch Proposal (Human-in-the-Loop)
-
-**Goal:** Agent proposes minimal patches as unified diffs but does not apply them.
-
-### Tools: `tools/patch.py`
-
-* `propose_unified_diff(edits: list) -> str`
-
-Workflow:
-
-1. User asks for a fix.
-2. Agent returns a unified diff.
-3. Human applies it manually or through a separate endpoint in Phase 6.
+**Acceptance Criteria:**
+- The agent can:
+  - Search the repo (`grep`) for patterns.
+  - Read targeted files (`read_text`).
+  - Answer questions with precise `file:path#line_start-line_end` citations.
+- API behavior identical to general agent, just smarter responses.
 
 ---
 
-# Phase 5 — Long-term Project Memory
-
-**Goal:** Persist repo knowledge beyond a single session.
-
-### Tools: `memory/long_term.py`
-
-* `index_files(paths: list[str])`
-* `semantic_search(query: str, k: int) -> list`
-
-Use embedding abstraction so local and cloud embeddings can be swapped seamlessly.
-
-### Agent Behavior
-
-* Uses semantic search to find relevant snippets.
-* Verifies results with `read_text` before citing.
+### **Phase 2 – Static Analysis & Quality Signals**
+Add **read-only analyzers**:
+- `pylint`, `ruff`, `bandit` run in sandboxed subprocesses with strict timeouts.
+- Summarize top 5 issues per tool with file/line and recommended fix.
+- Integrate into the LangChain planning step for now.
 
 ---
 
-# Phase 6 — Apply Patch Endpoint (Optional)
-
-**Goal:** Enable safe writes with human confirmation.
-
-### API
-
-* `POST /apply_patch`
-
-```json
-{
-  "diff": "<unified diff>",
-  "confirm": true
-}
-```
-
-Environment flag: `ALLOW_WRITE=false` by default.
+### **Phase 3 – Test Discovery & Runner**
+- Detect tests automatically.
+- Run tests in isolated subprocesses (no network, strict timeouts).
+- Parse results and explain failures in structured format.
+- Continue to use LangChain orchestration temporarily.
 
 ---
 
-# Phase 7 — Observability & Governance
+### **Phase 4 – Patch Proposal (Human-in-the-Loop)**
+- Generate **unified diff proposals** for fixes (no writes yet).
+- Return diffs to the user for review.
+- Actual writes require explicit human approval in Phase 6.
 
-**Goal:** Enable tracing and monitoring for debugging and scaling.
+---
 
-### Additions
+### **Phase 5 – Long-Term Memory (RAG)**
+- Add embeddings and vector search for historical conversations and code context.
+- **LangChain retrievers** can be used temporarily, but all storage and safety limits remain custom.
 
-* Request/response IDs (`X-Request-Id`).
-* Tool usage logs (`tools.log.jsonl`).
-* Config keys:
+---
+
+### **Phase 6 – Observability & Governance**
+- Add config knobs:
   - `AGENT_MAX_STEPS`
   - `TOOL_TIMEOUT_DEFAULT`
   - `WRITE_GUARD_REQUIRE_CONFIRM`
+- Enhanced logs:
+  - Request IDs
+  - Per-tool JSONL logs
+  - Token counts and cost tracking (for API LLMs)
 
 ---
 
-# Phase 8 — Multi-Agent Orchestration
-
-**Goal:** Add multi-agent support without breaking existing APIs.
-
-### Additions
-
-* `orchestration/router.py` routes tasks to specialized agents.
-* Role agents in `agents/roles/`:
-  - `architect.py`
-  - `coder.py`
-  - `tester.py`
-  - `reviewer.py`
-
-`/chat` remains default entrypoint, `/orchestrate` is added for multi-agent workflows.
+### **Phase 7 – Safe Write Operations**
+- Add `/apply_patch` endpoint with **`ALLOW_WRITE=false` by default**.
+- Human approval or explicit config required to allow writes.
 
 ---
 
-## Locked-in Contracts
-
-### Agent Base
-
-* `plan(user_message, memory, tools)`
-* `act(observation)`
-
-### Tool Base
-
-* `run(**kwargs)` with strict validation.
-
-### Memory Base
-
-* `short_term.get()` and `.append()`
-* `long_term.search()` and `.upsert()`
+### **Phase 8 – Multi-Agent Orchestration**
+- Introduce role-based agents (architect, coder, tester, reviewer).
+- Custom orchestrator (`agents/runner_custom.py` or `orchestration/router.py`) replaces LangChain entirely.
+- Keep `/chat` as default single-agent path.
+- Add `/orchestrate` for advanced workflows.
 
 ---
 
-## Checklist for Developer Agent v1
+## LangChain → Custom Transition Plan
 
-- [ ] Explain any file/class/function with citations.
-- [ ] Search and summarize repo relationships.
-- [ ] Run analyzers and present top 5 issues.
-- [ ] Run tests and explain failures.
-- [ ] Propose diffs without applying them automatically.
-- [ ] Log all tool interactions safely.
-
----
-
-## Upgrade Path to a Multi-Agent Team
-
-* Enable orchestrator and role-based agents.
-* Add a shared blackboard for tasks and results.
-* Implement policy checks for risky changes.
-* Introduce self-play loops for iterative refinement.
+| Area | LangChain Now | Custom Later |
+|------|---------------|--------------|
+| Agent orchestration | LCEL graph for planning & tool use | Your own deterministic `AgentRunner` |
+| Tool wrapping | `StructuredTool` | Direct calls to pure functions |
+| Output parsing | LC output parsers | Pydantic/JSON schema validation |
+| Observability | LC callbacks | Pure custom JSONL + metrics |
+| Retrieval (RAG) | LC retrievers | Your vector DB client |
 
 ---
 
-## Recommended Next Steps
+## Final State
 
-1. Build Phase 0 skeleton.
-2. Implement Phase 1 read-only tools.
-3. Add Phases 2 and 3 for analyzers and tests.
-4. Add Phase 4 diff proposals.
-5. Implement long-term memory in Phase 5.
-6. Add observability and writes in Phases 6 and 7.
-7. Prepare multi-agent setup in Phase 8.
+- **Fully custom platform** for renting AI developer agents.
+- LangChain completely removed.
+- Clean, well-tested, and optimized codebase with strict safety and governance.
+
+---
+
+## Immediate Next Steps
+
+1. Implement Phase 0 skeleton:
+   - Add empty tool files and `runner_lc.py`.
+   - Expand `ALLOWED_AGENTS` to include `"dev_generalist"`.
+2. Build Phase 1 LangChain-backed dev agent:
+   - Implement `grep`, `read_text`, and `outline_python` with strict read-only guards.
+   - Wrap them in LangChain `StructuredTool`.
+   - Build a simple LCEL chain for plan → tool → answer.
+3. Add JSONL logging for every step, even if LangChain callbacks are also active.
+4. Validate with test prompts:
+   - No tools → direct model answer.
+   - Code questions → tools invoked before model.
+   - Correct citations included in answers.
+
+---
+
+By following this roadmap, you will:
+- Quickly deliver a **functioning demo** for investors or early customers.
+- Avoid lock-in by isolating LangChain inside one interface.
+- Smoothly transition to a **fully custom, scalable platform** as your product grows.
