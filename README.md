@@ -173,15 +173,16 @@ def load_system_prompt() -> str:
     return p.read_text(encoding="utf-8").strip()
 
 ```
-
+```python
 # api/deps.py
 from fastapi import Request
 from app.services.memory import MemoryStore
 
 def get_memory_store(request: Request) -> MemoryStore:
     return request.app.state.memory_store
+```
 
-
+```python
 # api/routers/agents.py
 from fastapi import APIRouter
 
@@ -191,7 +192,8 @@ router = APIRouter(tags=["agents"])
 def list_agents() -> dict:
     # Single built-in agent for now; easy to extend later
     return {"agents": ["general"]}
-
+```
+```python
 # api/routers/chat.py
 import logging
 from typing import AsyncIterator, cast
@@ -259,7 +261,8 @@ async def chat(req: ChatRequest, request: Request, memory: MemoryStore = Depends
 
     headers = {"X-Conversation-Id": convo_id}
     return StreamingResponse(streamer(), media_type="text/plain; charset=utf-8", headers=headers)
-
+```
+```python
 # api/routers/health.py
 from fastapi import APIRouter
 
@@ -268,7 +271,8 @@ router = APIRouter(tags=["meta"])
 @router.get("/health")
 def health():
     return {"status": "ok"}
-
+```
+```python
 #core/config.py
 import os
 from dotenv import load_dotenv
@@ -290,7 +294,8 @@ ENABLE_MEMORY = os.getenv("ENABLE_MEMORY", "true").lower() in {"1", "true", "yes
 MEMORY_MAX_TURNS = int(os.getenv("MEMORY_MAX_TURNS", "8"))
 MEMORY_TTL_MIN = int(os.getenv("MEMORY_TTL_MIN", "60"))
 MEMORY_MAX_CONVERSATIONS = int(os.getenv("MEMORY_MAX_CONVERSATIONS", "500"))
-
+```
+```python
 # providers/base.py
 from typing import Optional, Dict, Any, AsyncIterator, Union
 
@@ -307,7 +312,8 @@ async def generate(
     options: Optional[Dict[str, Any]] = None,
 ) -> GenerateReturn:
     raise NotImplementedError
-
+```
+```python
 # providers/factory.py
 from typing import Callable, Awaitable, Optional, Dict, Any, AsyncIterator, Union
 from app.core import config
@@ -323,7 +329,8 @@ def get_generate():
         from app.providers.ollama import generate
         return generate
     return _not_implemented
-
+```
+```python
 # providers/ollama.py
 import json
 import httpx
@@ -385,7 +392,8 @@ async def generate(
             return reply
     except httpx.HTTPError as e:
         raise ProviderError(f"Ollama HTTP error: {e}") from e
-
+```
+```python
 # schemas/chat.py
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -401,7 +409,8 @@ class ChatResponse(BaseModel):
     conversation_id: Optional[str] = None
     model: Optional[str] = None
     provider: Optional[str] = None
-
+```
+```python
 # services/chat_service.py
 from typing import Dict, Any, AsyncIterator, cast
 from uuid import uuid4
@@ -440,8 +449,8 @@ async def prepare_and_generate(
     generate = get_generate()
     result = await generate(prompt, model=config.OLLAMA_MODEL_GENERAL, stream=stream, options=options)
     return convo_id, prompt, result  # result is str or AsyncIterator[str]
-
-
+```
+```python
 # services/memory.py
 from __future__ import annotations
 from collections import deque
@@ -515,7 +524,8 @@ class MemoryStore:
             async with self._lock:
                 self._store.pop(convo_id, None)
                 self._last.pop(convo_id, None)
-
+```
+```python
 # services/prompt.py
 from typing import List, Dict, Iterable
 
@@ -544,7 +554,8 @@ def build_prompt(system: str, user: str, history: List[Dict[str, str]] | None = 
         f"<system>\n{system}\n</system>\n\n"
         f"<user>\n{user}\n</user>"
     )
-
+```
+```python
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -587,6 +598,8 @@ read Q&A.
 
 
 app = create_app()
+```
+
 
 
 
